@@ -7,3 +7,7 @@ https://chainsawmann.com/
 
 Currently, to extract from other websites, manual modification of the `BASE` variable and grep patterns in `url_down.sh` is required. 
 Extraction for each chapter is done in parallel (32 threads currently), making it much faster (~4mins vs 2+hrs sequentially).
+
+Image combination:
+Sequential: 43.4s
+Parallel: 16.8s (8 instances)
