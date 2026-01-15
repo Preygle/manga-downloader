@@ -1,4 +1,4 @@
-BASE="https://ajinmanga.net"
+BASE="https://readoshino.com/"
 MAIN="${BASE}/"
 
 SITE_NAME=$(echo "$BASE" | sed -E 's#https?://(www\.)?([^/]+).*#\2#')
@@ -12,7 +12,7 @@ echo "Fetching chapter links..."
 curl -s "$MAIN" \
   | grep -oiE '<a [^>]*href="[^"]*"' \
   | sed 's/.*href="\([^"]*\)".*/\1/' \
-  | grep "/manga/ajin-chapter-" \
+  | grep "/manga/oshi-no-ko-chapter-" \
   | sort -u > chapters.txt
 
 TOTAL=$(wc -l < chapters.txt | tr -d ' ')
@@ -20,6 +20,7 @@ echo "Found $TOTAL chapters."
 echo "Saved to chapters.txt"
 
 read -p "Press ENTER to start download..."
+read -p "Start download from chapter (press ENTER for all): " START_CHAPTER
 
 process_chapter() {
     local url="$1"
@@ -62,6 +63,14 @@ export BASE OUT_ROOT
 running=0
 
 while read -r url; do
+    if [[ -n "$START_CHAPTER" ]]; then
+        chap_num=$(echo "$url" | sed -E 's/.*chapter-([0-9.]+).*/\1/')
+        # Use awk for float/integer comparison (1 if chap_num < START_CHAPTER, else 0)
+        skip=$(awk -v c="$chap_num" -v s="$START_CHAPTER" 'BEGIN { print (c < s) ? 1 : 0 }')
+        if [[ "$skip" -eq 1 ]]; then
+            continue
+        fi
+    fi
     process_chapter "$url" &
 
     ((running++))

@@ -1,10 +1,11 @@
 import os
 import time
-from PIL import Image
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
-PARENT_FOLDER = "ajin"      # folder containing chapter folders
+PARENT_FOLDER = "readoshino.com"      # folder containing chapter folders
 OUTPUT_FOLDER = PARENT_FOLDER + "_pdf"         # PDFs will be saved here
 
 MAX_WORKERS = max(1, os.cpu_count() // 2)  # SAFE parallelism
