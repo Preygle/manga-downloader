@@ -85,4 +85,5 @@ wait
 echo "================================="
 echo "All chapters downloaded."
 echo "Saved under: $OUT_ROOT"
+echo "OUTPUT_DIR_PATH::$OUT_ROOT"
 echo "================================="
