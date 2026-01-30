@@ -23,7 +23,7 @@ The easiest way to use the tool is via the `one_shot.sh` runner script.
     ./one_shot.sh
     ```
 2.  **Follow the prompts**:
-    - The script will ask where to start downloading (press ENTER for all chapters).
+    - The script will ask where to start downloading (press ENTER for all chapters / type starting chapter number if needed).
 3.  **Wait**:
     - The script will download all images.
     - It will automatically create/activate a `venv`, install requirements, and convert images to PDFs.
@@ -49,8 +49,8 @@ Benchmarks for image-to-PDF conversion:
 ### Real-world Tests
 - **80 Chapters processed in 93s**
 - **Download Speed Test (100mbps)**:
-    - **32 Threads**: ~4m 17s (4:14 - 4:18:17)
-    - **8 Threads**: ~11m 30s (4:20:20 - 4:31:50)
+    - **32 Threads**: ~4m 17s 
+    - **8 Threads**: ~11m 30s 
 
 Extraction is highly parallelized (32 threads), significantly reducing download time compared to sequential execution.
 
@@ -64,6 +64,7 @@ The core downloader script.
 - Scrapes chapter links.
 - Downloads images in parallel.
 - Outputs the download directory path for other scripts to use.
+- Change BASE url manually
 
 ### `img_pdf.py`
 The converter script.
