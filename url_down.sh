@@ -1,4 +1,4 @@
-BASE="https://readoshino.com/"
+BASE="https://read-monster.com/"
 MAIN="${BASE}/"
 
 SITE_NAME=$(echo "$BASE" | sed -E 's#https?://(www\.)?([^/]+).*#\2#')
@@ -12,7 +12,7 @@ echo "Fetching chapter links..."
 curl -s "$MAIN" \
   | grep -oiE '<a [^>]*href="[^"]*"' \
   | sed 's/.*href="\([^"]*\)".*/\1/' \
-  | grep "/manga/oshi-no-ko-chapter-" \
+  | grep "/manga/monster-chapter-" \
   | sort -u > chapters.txt
 
 TOTAL=$(wc -l < chapters.txt | tr -d ' ')
