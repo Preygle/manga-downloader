@@ -51,9 +51,13 @@ By default, the script is configured to download **Monster** from `https://read-
 To download a different manga, you need to update **two values** in the downloader script: the **Base URL** and the **Chapter URL Filter**.
 
 ### Step 1: Identify the Website and Chapter Portion
-Go to the manga website you want to use. 
-- **Image 1 Reference:** Find a standard manga reading site (e.g., a site with a dark theme and chapter lists like the *Monster Manga Online* reference image you provided).
-- **Image 2 Reference:** Click on any chapter and look at the URL in your browser. For example, if the URL is `read-monster.com/manga/monster-chapter-162/`, the portion that identifies a chapter is `/manga/monster-chapter-`.
+Go to the manga website you want to use. Find a standard manga reading site that looks similar to this:
+
+![Supported Website Example](./Screenshot%202026-07-15%20152118.png)
+
+Then, click on any chapter and look at the URL in your browser to identify the "chapter portion" of the URL. For example, if the URL is `read-monster.com/manga/monster-chapter-162/`, the portion that identifies a chapter is `/manga/monster-chapter-`:
+
+![Chapter URL Portion Example](./Screenshot%202026-07-15%20152242.png)
 
 ### Step 2: Update the Windows Script (`url_down.ps1`)
 Open `url_down.ps1` in a text editor and change these lines at the top:
