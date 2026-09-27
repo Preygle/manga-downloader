@@ -1,4 +1,17 @@
-/read-monster.com
-/read-monster.com_pdf
-/venv
+# Python
+__pycache__/
+*.py[cod]
+/venv/
+/.venv/
+*.egg-info/
+/build/
+/dist/
+/.pytest_cache/
+*.spec
 
+# Downloads and their output (folders are named after the site's domain, e.g. example.com_pdf)
+/*.*/
+!/.github/
+.volume_cache.json
+*_volumes/
+*_cbz/
