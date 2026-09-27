@@ -1,129 +1,209 @@
-# Manga Downloader & PDF Converter
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/logo.png" width="84" alt="MangaBinder logo">
+</p>
 
-A high-performance script suite to download manga chapters from web sources and convert them into PDF format.
+<h1 align="center">MangaBinder</h1>
+
+<p align="center">
+  Download manga chapters, convert them to PDF, bind them into volumes and export CBZ,<br>
+  from a friendly browser interface or a single command.
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/mangabinder/"><img src="https://img.shields.io/pypi/v/mangabinder?color=3b5bdb" alt="PyPI"></a>
+  <a href="https://github.com/Preygle/manga-downloader/releases/latest"><img src="https://img.shields.io/github/v/release/Preygle/manga-downloader?label=windows%20.exe&color=3b5bdb" alt="Windows download"></a>
+  <img src="https://img.shields.io/pypi/pyversions/mangabinder" alt="Python versions">
+  <a href="https://github.com/Preygle/manga-downloader/actions/workflows/ci.yml"><img src="https://github.com/Preygle/manga-downloader/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/screenshot-overview.png" width="900" alt="MangaBinder web interface with the main features annotated">
+</p>
 
 ## Features
 
-- **Fast Parallel Downloads**: Utilizes multi-threading (default 32 threads) to download chapters simultaneously.
-- **Automatic PDF Conversion**: Converts downloaded images into per-chapter PDFs.
-- **One-Shot Execution**: Single `one_shot` script handles the entire workflow (download -> environment setup -> conversion).
-- **Cross-Platform Compatibility**: Optimized for Windows (via native PowerShell) and Linux (via Bash).
+- **Parallel downloads.** Finds every chapter on a series page and downloads many chapters at once.
+- **Resume anywhere.** Progress is saved, so an interrupted download picks up where it stopped.
+- **Chapter PDFs.** Each chapter becomes one PDF. Re-runs only rebuild chapters that changed.
+- **Volume PDFs.** Chapters are bound into volumes using real volume data from MangaDex / AniList, with a bookmark for every chapter.
+- **CBZ export.** For e-readers and comic apps. Two-page spreads are split in right-to-left order.
+- **Browser interface.** Run everything, watch live progress, and read your volumes in the browser.
+- **Nothing extra to install.** A standalone Windows `.exe`, or `pip install` on Windows, macOS and Linux. No Poppler, no Ghostscript.
 
-## Quick Start (Windows)
+## Install
 
-The easiest way to run the tool on Windows is using the batch file.
+### Windows: download the app
 
-### Prerequisites
-- Windows 10/11 with PowerShell
-- Python 3.x installed (make sure it's in your system PATH)
+1. Download **`mangabinder.exe`** from the [latest release](https://github.com/Preygle/manga-downloader/releases/latest).
+2. Double-click it. The web interface opens in your browser, and your downloads go to `Documents\MangaBinder`.
 
-### Usage
-1. **Run the script**:
-   Double-click `one_shot.bat` or run it from your terminal:
-   ```cmd
-   .\one_shot.bat
-   ```
-2. **Follow the prompts**:
-   - The script will ask where to start downloading (press ENTER for all chapters / type starting chapter number if needed).
-3. **Wait**:
-   - The script will download all images in parallel.
-   - It will automatically create/activate a Python virtual environment (`venv`), install requirements, and convert images to PDFs.
-4. **Output**:
-   - Check the generated `*_pdf` directory (e.g., `read-monster.com_pdf`) for your completed PDF files.
+> Windows SmartScreen may warn about an unrecognised app because the `.exe` isn't code-signed.
+> Click **More info → Run anyway**. You can also install from PyPI below.
 
-## Quick Start (Linux / macOS)
+### Any OS: install with pip
 
-### Prerequisites
-- Bash environment
-- Python 3.x installed
+Requires Python 3.9 or newer.
 
-### Usage
-1. **Run the script**:
-   ```bash
-   ./one_shot.sh
-   ```
-2. Follow the same prompts as above. Output will be in the corresponding `*_pdf` directory.
-
-## How to Change the Manga
-
-By default, the script is configured to download **Monster** from `https://read-monster.com/`. 
-
-To download a different manga, you need to update **two values** in the downloader script: the **Base URL** and the **Chapter URL Filter**.
-
-### Step 1: Identify the Website and Chapter Portion
-Go to the manga website you want to use. Find a standard manga reading site that looks similar to this:
-
-![Supported Website Example](./Screenshot%202026-07-15%20152118.png)
-
-Then, click on any chapter and look at the URL in your browser to identify the "chapter portion" of the URL. For example, if the URL is `read-monster.com/manga/monster-chapter-162/`, the portion that identifies a chapter is `/manga/monster-chapter-`:
-
-![Chapter URL Portion Example](./Screenshot%202026-07-15%20152242.png)
-
-### Step 2: Update the Windows Script (`url_down.ps1`)
-Open `url_down.ps1` in a text editor and change these lines at the top:
-```powershell
-param (
-    [string]$BaseUrl = "https://read-monster.com/", # <-- Change this to your new Base URL
-    [int]$Threads = 32
-)
-```
-Then, scroll down to the `$chapters` filter and update the `-match` string to match your new chapter portion:
-```powershell
-$chapters = ([regex]::Matches($html, $pattern) | ForEach-Object { $_.Groups[1].Value } | Where-Object { $_ -match "/manga/monster-chapter-" } | Select-Object -Unique)
-# Change "/manga/monster-chapter-" to your new target (e.g. "/manga/one-piece-chapter-")
-```
-
-### Step 3: Update the Linux Script (`url_down.sh`)
-If you use the Bash version, open `url_down.sh` and change the top line:
 ```bash
-BASE="https://read-monster.com/" # <-- Change this
+pipx install mangabinder        # recommended: isolated install, adds the command to PATH
+# or
+pip install mangabinder
 ```
-And update the `grep` filter a few lines below:
+
+Then run `mangabinder web` for the browser interface, or use the [command line](#command-line).
+
+## Using the web interface
+
 ```bash
-  | grep "/manga/monster-chapter-" \ 
-  # <-- Change this to your new chapter pattern
+mangabinder web                          # opens http://127.0.0.1:8765
+mangabinder web --library D:\Manga       # keep downloads somewhere else
 ```
 
-## Supported Websites
+### 1. Download
 
-Designed and tested for sites like:
-- `https://read-monster.com/` (Currently active)
-- `https://readoshino.com/`
-- `https://ajinmanga.net/`
-- `https://w10.1punchman.com/`
-- `https://chainsawmann.com/`
+Paste the **series page**, the page on the site that links to every chapter. Then press **Download + convert to PDF**.
 
-*Note: The script expects a standard HTML structure where chapters are linked via `<a href="...">` and images via `<img src="...">`. If a site uses dynamic JavaScript loading for images, the script may need adjustments.*
+<img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/screenshot-download.png" width="820" alt="Download form with each option numbered and explained">
 
-## Performance
-Benchmarks for image-to-PDF conversion:
-- **Sequential**: ~43.4s
-- **Parallel (8 processes)**: ~16.8s
+Chapter links like `…/chapter-12` are detected automatically. Fill in **Chapter link pattern** only if a site names its chapters differently (see [Supported sites](#supported-sites)).
 
-### Real-world Tests
-- **80 Chapters processed in 93s**
-- **Download Speed Test (100mbps)**:
-    - **32 Threads**: ~4m 17s 
-    - **8 Threads**: ~11m 30s 
+### 2. Watch it run
 
-Extraction is highly parallelized (32 threads by default), significantly reducing download time compared to sequential execution.
+The **Activity** panel streams the output of every job live. **Stop** cancels the current job. Resume is on by default, so pressing the button again later continues from where it stopped.
 
-## Components
+### 3. Read, merge and export
 
-### `one_shot.bat` & `one_shot.sh`
-The main orchestrators. They manage dependency installation (creates `venv` + `requirements.txt`) and chain the download and conversion steps.
+Everything you've downloaded appears in the **Library**:
 
-### `url_down.ps1` & `url_down.sh`
-The core downloader scripts.
-- Scrapes chapter links.
-- Downloads images in parallel.
-- Outputs the download directory path for other scripts to use.
+<img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/screenshot-library.png" width="820" alt="Library panel with each action numbered and explained">
 
-### `img_pdf.py`
-The converter script.
-- Converts downloaded chapter folders into single PDF files.
-- Uses `multiprocessing` for speed.
-- **Usage**:
-  ```bash
-  python img_pdf.py --input_folder "path/to/downloaded/manga"
-  ```
+Click a volume to read it in your browser's PDF viewer. Each chapter is bookmarked:
+
+<img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/screenshot-reader.png" width="820" alt="A merged volume open in the browser PDF viewer">
+
+<details>
+<summary><b>Dark mode</b> follows your system setting</summary>
+<br>
+<img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/screenshot-dark.png" width="700" alt="MangaBinder in dark mode">
+</details>
+
+## Command line
+
+One command runs the whole pipeline: download, then chapter PDFs, then volumes.
+
+```bash
+mangabinder download https://example.com/manga/series-name/ --volumes
+```
+
+<img src="https://raw.githubusercontent.com/Preygle/manga-downloader/master/docs/screenshot-cli.png" width="900" alt="Terminal output of a full download, convert and merge run, annotated">
+
+Or run each step on its own:
+
+| Command | What it does |
+| --- | --- |
+| `mangabinder download URL` | Download every chapter into `./<site>/<chapter>/` |
+| `mangabinder convert FOLDER` | Build `FOLDER_pdf/<chapter>.pdf` from the chapter images |
+| `mangabinder merge FOLDER_pdf` | Bind chapter PDFs into `FOLDER_pdf_volumes/<Title> v01.pdf`, … |
+| `mangabinder cbz PDF_FOLDER` | Convert PDFs (chapters or volumes) to CBZ in `PDF_FOLDER_cbz/` |
+| `mangabinder web` | Open the browser interface |
+| `mangabinder gui` | Small desktop window for PDF → CBZ |
+
+Useful options (run `mangabinder <command> --help` for all of them):
+
+```bash
+# download
+mangabinder download URL --pattern title-chapter-   # only follow links containing this text
+mangabinder download URL --start 120                # skip chapters before 120
+mangabinder download URL --threads 8                # gentler on the site (default 16)
+mangabinder download URL --fresh                    # ignore saved progress
+mangabinder download URL --convert                  # also make chapter PDFs
+
+# volumes
+mangabinder merge example.com_pdf --dry-run         # print the volume plan only
+mangabinder merge example.com_pdf --title "Monster"  # when the guessed title is wrong
+mangabinder merge example.com_pdf --series-id <id> --source mangadex
+
+# cbz
+mangabinder cbz example.com_pdf_volumes --dpi 200 --no-split
+```
+
+## How it works
+
+### Output layout
+
+```
+Documents/MangaBinder/                 (or the folder you ran the command in)
+├── example.com/                       downloaded images, one folder per chapter
+│   ├── series-chapter-1/1.jpg, 2.jpg, …
+│   └── download_state.txt             finished chapters, used to resume
+├── example.com_pdf/                   one PDF per chapter
+├── example.com_pdf_volumes/           one PDF per volume + volume_map.json
+└── example.com_pdf_volumes_cbz/       CBZ files
+```
+
+### Supported sites
+
+MangaBinder works with the common "online reader" layout:
+
+- The series page links to each chapter with a normal link (`<a href="…/chapter-12/">`).
+- Each chapter page shows its pages as images (`<img src>`, or lazy-loaded `data-src`).
+
+If **no chapters are found**, open any chapter, look at its address, and pass the part every chapter link shares as the pattern. For example, for `https://site.com/manga/monster-chapter-162/` use `--pattern monster-chapter-`. Sites that load pages with JavaScript only, or that need a login, aren't supported.
+
+> **Git Bash users:** a pattern starting with `/` gets rewritten into a Windows path by Git Bash.
+> Leave off the leading slash (`monster-chapter-`) or run the command from PowerShell / cmd.
+
+### Volume mapping
+
+The series title is guessed from the chapter names (`monster-chapter-1` → *Monster*) and looked up on **MangaDex** and **AniList**. No API key is needed.
+
+1. **MangaDex per-chapter volume data** is used when it covers at least 70% of the chapters. This is the accurate path.
+2. **Even split** across the published volume count is the fallback when no per-chapter data exists. This is *approximate*, and the run prints a warning.
+
+Each run writes `volume_map.json` into the volumes folder. **Edit the `mapping` (chapter → volume) and re-run**. A map file always wins over a new lookup, so your corrections stick. Lookups are cached in your user cache folder.
+
+## Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| "No chapters found" | Pass `--pattern` (see [Supported sites](#supported-sites)), and check the URL is the series page, not a chapter |
+| Some chapters failed | Run the same command again. Finished chapters and pages are skipped |
+| Wrong series picked for volumes | `--title "Exact Name"`, or `--series-id` with the MangaDex id |
+| Volume boundaries slightly off | Edit `volume_map.json` in the volumes folder and run `merge --overwrite` |
+| Port 8765 already in use | `mangabinder web --port 9000` (it also tries the next 9 ports automatically) |
+
+## Development
+
+```bash
+git clone https://github.com/Preygle/manga-downloader.git
+cd manga-downloader
+python -m venv .venv && .venv/Scripts/activate      # macOS/Linux: source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+Build the Windows executable locally:
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --console --name mangabinder --icon packaging/icon.ico \
+  --collect-all pypdfium2 --collect-all pypdfium2_raw packaging/entry.py
+```
+
+### Releasing
+
+Publishing a GitHub release runs [`release.yml`](.github/workflows/release.yml). It builds the wheel and sdist, uploads them to PyPI, builds `mangabinder.exe`, and attaches everything to the release.
+
+1. Bump `__version__` in `src/mangabinder/__init__.py`.
+2. `gh release create vX.Y.Z --generate-notes`
+
+PyPI uploads use [trusted publishing](https://docs.pypi.org/trusted-publishers/), so no API token is stored. It needs a one-time setup on pypi.org: add a publisher for owner `Preygle`, repository `manga-downloader`, workflow `release.yml`, environment `pypi`.
+
+## Responsible use
+
+MangaBinder is a general-purpose tool. Only download content you have the right to download, respect each site's terms of service, and support the creators by buying official releases where they're available.
+
+## License
+
+[MIT](LICENSE) © Mohammad Owais
