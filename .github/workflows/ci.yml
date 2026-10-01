@@ -34,3 +34,31 @@ jobs:
           curl -fs http://127.0.0.1:8765/api/library
           docker run --rm mangabinder:test --version
           docker logs mb
+
+  aur-pkgbuild:
+    # Builds packaging/aur/PKGBUILD against the latest released sdist, like the AUR would
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools and the dependencies from the official repos
+        run: |
+          pacman -Syu --noconfirm --needed base-devel jq curl python python-pillow python-tqdm python-pypdf \
+            python-build python-installer python-hatchling python-wheel
+          useradd -m builder
+      - name: Fill in the latest release
+        run: |
+          release=$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest)
+          version=$(jq -r '.tag_name | ltrimstr("v")' <<< "$release")
+          sha=$(jq -r --arg n "mangabinder-$version.tar.gz" '.assets[] | select(.name == $n) | .digest | ltrimstr("sha256:")' <<< "$release")
+          mkdir /tmp/pkg && sed "s/__VERSION__/$version/; s/__SHA256__/$sha/" packaging/aur/PKGBUILD > /tmp/pkg/PKGBUILD
+          chown -R builder /tmp/pkg
+      - name: makepkg
+        # python-pypdfium2 lives in the AUR itself, so skip the dependency check (-d) here
+        run: |
+          cd /tmp/pkg
+          su builder -c "makepkg -d --noconfirm && makepkg --printsrcinfo > .SRCINFO"
+          pacman -Udd --noconfirm mangabinder-*.pkg.tar.zst
+          mangabinder --version
+          python -c "import mangabinder.web, mangabinder.volumes, mangabinder.convert"
+          cat .SRCINFO
