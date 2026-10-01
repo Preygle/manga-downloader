@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The release workflow sets the real version when it packs this file. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>mangabinder</id>
+    <version>0.0.0</version>
+    <title>MangaBinder</title>
+    <authors>Mohammad Owais</authors>
+    <owners>Preygle</owners>
+    <projectUrl>https://github.com/Preygle/manga-downloader</projectUrl>
+    <projectSourceUrl>https://github.com/Preygle/manga-downloader</projectSourceUrl>
+    <docsUrl>https://github.com/Preygle/manga-downloader#readme</docsUrl>
+    <bugTrackerUrl>https://github.com/Preygle/manga-downloader/issues</bugTrackerUrl>
+    <releaseNotes>https://github.com/Preygle/manga-downloader/releases</releaseNotes>
+    <iconUrl>https://cdn.jsdelivr.net/gh/Preygle/manga-downloader@master/docs/logo.png</iconUrl>
+    <licenseUrl>https://github.com/Preygle/manga-downloader/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>manga downloader pdf cbz comics ebook converter cli web-ui</tags>
+    <summary>Download manga chapters, convert them to PDF, bind volumes and export CBZ.</summary>
+    <description><![CDATA[
+**MangaBinder** downloads every chapter of a manga series from an online reader, converts the chapters to PDF,
+binds them into volumes using MangaDex / AniList volume data (with a bookmark per chapter) and exports CBZ for
+e-readers.
+
+* Run `mangabinder` to open the browser interface, or use the command line:
+  `mangabinder download URL --volumes`
+* Parallel downloads with resume
+* Chapter PDFs, volume PDFs and CBZ export
+
+Only download content you have the right to download.
+]]></description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
