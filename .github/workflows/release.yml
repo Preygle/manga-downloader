@@ -1,7 +1,17 @@
 name: Release
 
-# Runs when a GitHub release is published: builds the Python package and the
-# Windows .exe, attaches both to the release, and publishes to PyPI.
+# Runs when a GitHub release is published and ships it everywhere:
+#
+#   GitHub release  wheel, sdist and mangabinder.exe attached
+#   PyPI            trusted publishing (one-time setup on pypi.org, environment "pypi")
+#   Docker          ghcr.io/preygle/mangabinder (uses the built-in GITHUB_TOKEN)
+#   Chocolatey      needs repository secret CHOCOLATEY_API_KEY
+#   winget          needs repository secret WINGET_TOKEN (classic PAT, public_repo scope)
+#   AUR             needs repository secret AUR_SSH_PRIVATE_KEY
+#   Scoop/Homebrew  their own repos (Preygle/scoop-bucket, Preygle/homebrew-tap) pick up
+#                   new releases on a schedule, nothing to do here
+#
+# A channel whose secret isn't set is still built and tested, just not published.
 on:
   release:
     types: [published]
@@ -10,14 +20,24 @@ on:
 permissions:
   contents: write
 
+env:
+  REPO_URL: https://github.com/Preygle/manga-downloader
+
 jobs:
   package:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - id: version
+        run: echo "version=$(grep -Po '__version__ = "\K[^"]+' src/mangabinder/__init__.py)" >> "$GITHUB_OUTPUT"
+      - name: Tag matches the package version
+        if: github.event_name == 'release'
+        run: test "${{ github.event.release.tag_name }}" = "v${{ steps.version.outputs.version }}"
       - run: python -m pip install build twine
       - run: python -m build
       - run: python -m twine check --strict dist/*
@@ -59,8 +79,6 @@ jobs:
         run: gh release upload "${{ github.event.release.tag_name }}" dist/mangabinder.exe --clobber
 
   pypi:
-    # One-time setup on pypi.org: add a trusted publisher for this repo,
-    # workflow "release.yml", environment "pypi".
     if: github.event_name == 'release'
     needs: package
     runs-on: ubuntu-latest
@@ -75,3 +93,113 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  docker:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'release' }}
+          tags: |
+            ghcr.io/preygle/mangabinder:${{ needs.package.outputs.version }}
+            ghcr.io/preygle/mangabinder:latest
+
+  chocolatey:
+    needs: [package, windows-exe]
+    runs-on: windows-latest
+    env:
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+      VERSION: ${{ needs.package.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: mangabinder-windows
+          path: exe/
+      - name: Fill in version and checksum
+        shell: pwsh
+        run: |
+          $sha = (Get-FileHash exe/mangabinder.exe -Algorithm SHA256).Hash.ToLower()
+          $script = 'packaging/chocolatey/tools/chocolateyinstall.ps1'
+          (Get-Content $script) -replace '__VERSION__', $env:VERSION -replace '__SHA256__', $sha | Set-Content $script
+      - name: Pack
+        working-directory: packaging/chocolatey
+        run: choco pack mangabinder.nuspec --version ${{ env.VERSION }}
+      - name: Install from the package (release only, the exe must be downloadable)
+        if: github.event_name == 'release'
+        working-directory: packaging/chocolatey
+        run: |
+          choco install mangabinder --source . --version ${{ env.VERSION }} -y --no-progress
+          mangabinder --version
+      - name: Push to the Chocolatey community repository
+        if: github.event_name == 'release' && env.CHOCOLATEY_API_KEY != ''
+        working-directory: packaging/chocolatey
+        run: choco push mangabinder.${{ env.VERSION }}.nupkg --source https://push.chocolatey.org/ --api-key ${{ env.CHOCOLATEY_API_KEY }}
+
+  winget:
+    # Updates an existing winget package; the very first version was submitted by hand.
+    if: github.event_name == 'release'
+    needs: [package, windows-exe]
+    runs-on: windows-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+      VERSION: ${{ needs.package.outputs.version }}
+    steps:
+      - name: Submit the new version to microsoft/winget-pkgs
+        if: env.WINGET_TOKEN != ''
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe update Preygle.MangaBinder --version $env:VERSION `
+            --urls "$env:REPO_URL/releases/download/v$env:VERSION/mangabinder.exe" `
+            --submit --token $env:WINGET_TOKEN
+      - name: Skipped
+        if: env.WINGET_TOKEN == ''
+        run: echo "WINGET_TOKEN is not set - winget was not updated."
+
+  aur:
+    if: github.event_name == 'release'
+    needs: package
+    runs-on: ubuntu-latest
+    env:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+      VERSION: ${{ needs.package.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Fill in version and checksum
+        run: |
+          sha=$(sha256sum "dist/mangabinder-$VERSION.tar.gz" | cut -d' ' -f1)
+          sed -i "s/__VERSION__/$VERSION/; s/__SHA256__/$sha/" packaging/aur/PKGBUILD
+      - name: Publish to the AUR
+        if: env.AUR_SSH_PRIVATE_KEY != ''
+        uses: KSXGitHub/github-actions-deploy-aur@v3
+        with:
+          pkgname: mangabinder
+          pkgbuild: packaging/aur/PKGBUILD
+          commit_username: Preygle
+          commit_email: Preygle@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to ${{ env.VERSION }}"
+      - name: Skipped
+        if: env.AUR_SSH_PRIVATE_KEY == ''
+        run: echo "AUR_SSH_PRIVATE_KEY is not set - the AUR was not updated."

@@ -67,3 +67,15 @@ def test_validates_run_requests(server):
     assert status == 400 and b"https://" in body
     status, body = request(server + "/api/run", body={"action": "convert", "folder": "../etc"})
     assert status == 400
+
+
+def test_ip_hosts_only_allowed_when_serving_beyond_loopback(server, monkeypatch):
+    assert web.host_name("[::1]:8765") == "::1"
+    assert web.host_name("localhost") == "localhost"
+    assert web.is_loopback("127.0.0.1") and not web.is_loopback("0.0.0.0")
+
+    assert request(server + "/api/library", headers={"Host": "192.168.1.20:8765"})[0] == 403
+    monkeypatch.setattr(web, "ALLOW_IP_HOSTS", True)  # as with --host 0.0.0.0
+    assert request(server + "/api/library", headers={"Host": "192.168.1.20:8765"})[0] == 200
+    # Domain names are still refused, which is what blocks DNS rebinding
+    assert request(server + "/api/library", headers={"Host": "evil.example:8765"})[0] == 403

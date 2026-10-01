@@ -79,7 +79,7 @@ def cmd_cbz(args):
 
 def cmd_web(args):
     from mangabinder.web import serve
-    return serve(args.library, port=args.port, open_browser=not args.no_browser)
+    return serve(args.library, port=args.port, open_browser=not args.no_browser, host=args.host)
 
 
 def cmd_gui(args):
@@ -151,6 +151,9 @@ def build_parser():
     p.add_argument("-l", "--library", default=default_library(),
                    help="folder that holds your downloads (default: %(default)s)")
     p.add_argument("--port", type=int, default=8765, help="port to listen on (default 8765)")
+    p.add_argument("--host", default="127.0.0.1",
+                   help="address to listen on; use 0.0.0.0 to allow other devices, e.g. in Docker "
+                        "(default 127.0.0.1, this computer only)")
     p.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     p.set_defaults(func=cmd_web)
 

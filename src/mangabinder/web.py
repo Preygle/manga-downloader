@@ -9,6 +9,7 @@ opened straight from the browser.
 
 The server only listens on 127.0.0.1 and is meant for local use.
 """
+import ipaddress
 import json
 import os
 import re
@@ -33,6 +34,27 @@ PROGRESS_RE = re.compile(r"\d+%\|")  # tqdm progress bar lines
 DEFAULT_THREADS = 16
 
 LIBRARY = os.getcwd()  # set by serve()
+ALLOW_IP_HOSTS = False  # set by serve() when listening beyond loopback
+
+
+def host_name(header):
+    """'localhost:8765' -> 'localhost', '[::1]:8765' -> '::1'."""
+    header = header.strip()
+    if header.startswith("["):
+        return header[1:header.find("]")] if "]" in header else ""
+    return header.rsplit(":", 1)[0] if header.count(":") == 1 else header
+
+
+def is_ip(name):
+    try:
+        ipaddress.ip_address(name)
+        return True
+    except ValueError:
+        return False
+
+
+def is_loopback(host):
+    return host == "localhost" or (is_ip(host) and ipaddress.ip_address(host).is_loopback)
 
 
 def natural_key(name):
@@ -222,9 +244,12 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def _host_ok(self):
-        # Rejects DNS-rebinding requests that reach 127.0.0.1 under a foreign host name
-        host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
-        return host in ("127.0.0.1", "localhost", "::1")
+        # Rejects DNS-rebinding requests, which reach us under a foreign *domain name*.
+        # When serving beyond loopback (--host, e.g. in Docker) plain IP addresses are fine too.
+        name = host_name(self.headers.get("Host") or "")
+        if name in ("127.0.0.1", "localhost", "::1"):
+            return True
+        return ALLOW_IP_HOSTS and is_ip(name)
 
     def _send(self, code, body, content_type="application/json"):
         data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
@@ -359,15 +384,16 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, {"ok": True})
 
 
-def serve(library, port=8765, open_browser=True):
-    global LIBRARY
+def serve(library, port=8765, open_browser=True, host="127.0.0.1"):
+    global LIBRARY, ALLOW_IP_HOSTS
     LIBRARY = os.path.abspath(library)
     os.makedirs(LIBRARY, exist_ok=True)
+    ALLOW_IP_HOSTS = not is_loopback(host)
 
     server = None
     for candidate in range(port, port + 10):
         try:
-            server = ThreadingHTTPServer(("127.0.0.1", candidate), Handler)
+            server = ThreadingHTTPServer((host, candidate), Handler)
             break
         except OSError:
             continue
@@ -379,6 +405,9 @@ def serve(library, port=8765, open_browser=True):
     print("==========================================")
     print(f" MangaBinder {__version__} running at {url}")
     print(f" Library: {LIBRARY}")
+    if ALLOW_IP_HOSTS:
+        print(f" Listening on {host}: anyone who can reach this machine on port")
+        print(f" {server.server_port} can use the page (there is no login).")
     print(" Press Ctrl+C to stop")
     print("==========================================")
     if open_browser:
