@@ -33,42 +33,25 @@
 
 ## Install
 
-Pick whichever you already use. Every option gives you the same `mangabinder` command.
+### Windows app (web interface)
 
-| Platform | Install with | Command |
-| --- | --- | --- |
-| Windows | **winget** | `winget install Preygle.MangaBinder` |
-| Windows | **Scoop** | `scoop bucket add preygle https://github.com/Preygle/scoop-bucket`<br>`scoop install mangabinder` |
-| Windows | **Chocolatey** | `choco install mangabinder` |
-| Windows | **Download** | [`mangabinder.exe`](https://github.com/Preygle/manga-downloader/releases/latest), no install needed |
-| macOS / Linux | **Homebrew** | `brew install preygle/tap/mangabinder` |
-| Any OS | **pipx / pip** | `pipx install mangabinder` (Python 3.9+) |
-| Any OS | **conda** | `conda install -c conda-forge mangabinder` |
-| Arch Linux | **AUR** | `yay -S mangabinder` |
-| Server / NAS | **Docker** | see [Docker](#docker) |
+1. Download **`mangabinder.exe`** from the [latest release](https://github.com/Preygle/manga-downloader/releases/latest).
+2. Double-click it. The web interface opens in your browser, and your downloads go to `Documents\MangaBinder`.
 
-> winget, Chocolatey and conda-forge review new packages by hand. If one of those commands can't find
-> `mangabinder` yet, its review is still in progress; use another option meanwhile.
+> Windows SmartScreen may warn about an unrecognised app because the `.exe` isn't code-signed.
+> Click **More info → Run anyway**.
 
-Then run `mangabinder web` for the browser interface, or use the [command line](#command-line).
+### Command line (any OS, from PyPI)
 
-**Using the `.exe` directly:** double-click it and the web interface opens, with downloads going to `Documents\MangaBinder`.
-Windows SmartScreen may warn about an unrecognised app because the `.exe` isn't code-signed. Click **More info → Run anyway**.
-
-### Docker
-
-Run the web interface on a server or NAS and open it from any device on your network:
+Requires Python 3.9 or newer.
 
 ```bash
-docker run -d --name mangabinder -p 8765:8765 -v ~/Manga:/library ghcr.io/preygle/mangabinder
+pipx install mangabinder        # recommended: isolated install, adds the command to PATH
+# or
+pip install mangabinder
 ```
 
-Then browse to `http://<server-ip>:8765`. The page has no login, so don't expose that port to the internet.
-CLI commands work too:
-
-```bash
-docker run --rm -v ~/Manga:/library -w /library ghcr.io/preygle/mangabinder download URL --volumes
-```
+Then use the [command line](#command-line). `mangabinder web` opens the same browser interface as the `.exe`.
 
 ## Using the web interface
 
@@ -214,21 +197,9 @@ pyinstaller --onefile --console --name mangabinder --icon packaging/icon.ico \
 1. Bump `__version__` in `src/mangabinder/__init__.py` and merge to `master`.
 2. `gh release create vX.Y.Z --generate-notes`
 
-Publishing the release runs [`release.yml`](.github/workflows/release.yml), which ships it everywhere:
-
-| Channel | How it's updated | One-time setup |
-| --- | --- | --- |
-| GitHub release | wheel, sdist and `mangabinder.exe` attached | none |
-| PyPI | [trusted publishing](https://docs.pypi.org/trusted-publishers/) | pypi.org publisher: `Preygle` / `manga-downloader` / `release.yml` / env `pypi` |
-| Docker | pushed to `ghcr.io/preygle/mangabinder` | none |
-| Chocolatey | `choco push` | repo secret `CHOCOLATEY_API_KEY` |
-| winget | `wingetcreate update` opens a PR to microsoft/winget-pkgs | repo secret `WINGET_TOKEN` (classic PAT, `public_repo`) |
-| AUR | PKGBUILD pushed over SSH | repo secret `AUR_SSH_PRIVATE_KEY` |
-| Scoop | [scoop-bucket](https://github.com/Preygle/scoop-bucket) checks for new releases every 6 hours | none |
-| Homebrew | [homebrew-tap](https://github.com/Preygle/homebrew-tap) checks for new releases every 6 hours | none |
-| conda-forge | the conda-forge bot opens a PR on the feedstock | none |
-
-A channel whose secret is missing is still built and tested, just not published.
+Publishing the release runs [`release.yml`](.github/workflows/release.yml), which builds the wheel, sdist and
+`mangabinder.exe`, attaches them to the release, and uploads the wheel and sdist to PyPI with
+[trusted publishing](https://docs.pypi.org/trusted-publishers/), so no API token is stored.
 
 ## Responsible use
 

@@ -245,7 +245,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _host_ok(self):
         # Rejects DNS-rebinding requests, which reach us under a foreign *domain name*.
-        # When serving beyond loopback (--host, e.g. in Docker) plain IP addresses are fine too.
+        # When serving beyond loopback (--host 0.0.0.0) plain IP addresses are fine too.
         name = host_name(self.headers.get("Host") or "")
         if name in ("127.0.0.1", "localhost", "::1"):
             return True
